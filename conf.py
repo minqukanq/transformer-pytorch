@@ -7,7 +7,7 @@ forward_expansion = 4
 heads             = 8
 dropout           = 0.1
 max_length        = 512
-batch_size        = 1024
+batch_size        = 256
 
 # optimizer setting
 weight_decay      = 5e-4
