@@ -13,9 +13,9 @@ class SelfAttention(nn.Module):
                 self.head_dim * heads == embed_size
         ), "Embedding size needs to be divisible by heads"
 
-        self.values  = nn.Linear(self.head_dim, self.head_dim, bias=False)
-        self.keys    = nn.Linear(self.head_dim, self.head_dim, bias=False)
-        self.queries = nn.Linear(self.head_dim, self.head_dim, bias=False)
+        self.values  = nn.Linear(self.embed_size, self.embed_size, bias=False)
+        self.keys    = nn.Linear(self.embed_size, self.embed_size, bias=False)
+        self.queries = nn.Linear(self.embed_size, self.embed_size, bias=False)
         self.fc_out  = nn.Linear(heads * self.head_dim, embed_size)
 
     def forward(self, values, keys, query, mask):
@@ -24,21 +24,20 @@ class SelfAttention(nn.Module):
 
         value_len, key_len, query_len = values.shape[1], keys.shape[1], query.shape[1]
 
+        values  = self.values(values)
+        keys    = self.keys(keys)
+        queries = self.queries(query)
+        
         # Split the embedding into self.heads different pieces
         # Multi head
         # [N, len, embed_size] --> [N, len, heads, head_dim]
-        values  = values.reshape(N, value_len, self.heads, self.head_dim)
-        keys    = keys.reshape(N, key_len, self.heads, self.head_dim)
-        query   = query.reshape(N, query_len, self.heads, self.head_dim)
-
-        values  = self.values(values)  # (N, value_len, heads, head_dim)
-        keys    = self.keys(keys)  # (N, key_len, heads, head_dim)
-        queries = self.queries(query)  # (N, query_len, heads, heads_dim)
+        values    = values.reshape(N, value_len, self.heads, self.head_dim)
+        keys      = keys.reshape(N, key_len, self.heads, self.head_dim)
+        queries   = queries.reshape(N, query_len, self.heads, self.head_dim)
 
         # Einsum does matrix mult. for query*keys for each training example
         # with every other training example, don't be confused by einsum
         # it's just how I like doing matrix multiplication & bmm
-
         energy = torch.einsum("nqhd,nkhd->nhqk", [queries, keys])
         # queries shape: (N, query_len, heads, heads_dim),
         # keys shape: (N, key_len, heads, heads_dim)
